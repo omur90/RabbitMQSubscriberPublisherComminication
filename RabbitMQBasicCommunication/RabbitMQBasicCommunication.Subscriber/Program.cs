@@ -13,19 +13,42 @@ using var connection = factory.CreateConnection();
 
 var channel = connection.CreateModel();
 
-var queueName = "hello-queue";
 
+var randomQueueName = "log-database-save-queue"; //channel.QueueDeclare().QueueName;
+
+//if not declare queue and when all subscriber down messages not recived.
+//if declare queue not remove message on RabbitMq fanout exchange type.
+//channel.QueueDeclare(randomQueueName, true, false, false); 
+
+channel.QueueBind(randomQueueName, "logs-fanout", "", null);
+
+//var queueName = "hello-queue";
 //channel.QueueDeclare(queueName, true, false, false); => already created Publisher Library.  Than it is not necessary !
+
+
 
 var consumer = new EventingBasicConsumer(channel);
 
-//autoAck : set false when this message read it after automatically delete. set true after delete yourself 
-channel.BasicConsume(queueName, autoAck: true,consumer);
+//prefetchSize : 0 get any message 
+channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
-consumer.Received += (object? sender, BasicDeliverEventArgs e) => {
+//autoAck : set false when this message read it after automatically delete. set true after delete yourself 
+channel.BasicConsume(randomQueueName, autoAck: false, consumer);
+
+Console.WriteLine("Channel Listining...");
+
+consumer.Received += (object? sender, BasicDeliverEventArgs e) =>
+{
+    System.Threading.Thread.Sleep(700);
+
     var message = Encoding.UTF8.GetString(e.Body.ToArray());
 
+    
     Console.WriteLine($"Recived message : {message}");
+
+    //when message get successfuly than callBack to RabbitMQ 
+    // multiple : only get a single message you should set false.
+    channel.BasicAck(e.DeliveryTag, multiple: false);
 };
 
 Console.ReadLine();
