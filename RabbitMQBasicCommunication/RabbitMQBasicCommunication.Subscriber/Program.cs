@@ -13,13 +13,15 @@ using var connection = factory.CreateConnection();
 
 var channel = connection.CreateModel();
 
-
-var queueName = "direct-queue-Critical";
-
-
 var consumer = new EventingBasicConsumer(channel);
 
-channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
+var queueName = channel.QueueDeclare().QueueName;
+
+//var routeKey = "*.Error.*"; -- xxx.Error.xxx
+//var routeKey = "*.*.Warning"; -- xxx.xxx.Warning
+var routeKey = "Info.#"; // Info.xxx.xxx
+channel.QueueBind(queueName, "logs-topic", routeKey);
+
 
 channel.BasicConsume(queueName, autoAck: false, consumer);
 
@@ -27,15 +29,12 @@ Console.WriteLine("Channel Listining...");
 
 consumer.Received += (object? sender, BasicDeliverEventArgs e) =>
 {
-    System.Threading.Thread.Sleep(700);
+    System.Threading.Thread.Sleep(1000);
 
     var message = Encoding.UTF8.GetString(e.Body.ToArray());
-
     
     Console.WriteLine($"Recived message : {message}");
 
-    File.AppendAllText("log-critical.txt", message + "\n");
-   
     channel.BasicAck(e.DeliveryTag, multiple: false);
 };
 

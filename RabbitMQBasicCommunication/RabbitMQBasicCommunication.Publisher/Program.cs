@@ -14,29 +14,23 @@ using var connection = factory.CreateConnection();
 
 var channel = connection.CreateModel();
 
-channel.ExchangeDeclare("logs-direct", durable: true,type: ExchangeType.Direct);
+channel.ExchangeDeclare("logs-topic", durable: true,type: ExchangeType.Topic);
 
-Enum.GetNames(typeof(LogType)).ToList().ForEach(x =>
-{
-    var queueName = $"direct-queue-{x}";
-    channel.QueueDeclare(queueName, true, false, false);
-
-    var routeKey = $"route-{x}";
-
-    channel.QueueBind(queueName, "logs-direct",routeKey,null);
-});
-
+Random rnd = new Random();
 Enumerable.Range(1, 50).ToList().ForEach(x =>
 {
-    LogType logtype = (LogType)new Random().Next(1, 5);
+ 
+    LogType logFirst = (LogType)new Random().Next(1, 5);
+    LogType logSecond = (LogType)new Random().Next(1, 5);
+    LogType logThird = (LogType)new Random().Next(1, 5);
 
-    string message = $"log-type : {logtype}";
+    var routeKey = $"{logFirst}.{logSecond}.{logThird}";
+
+    string message = $"log-type : {logFirst}-{logSecond}-{logThird}";
 
     var messageBody = Encoding.UTF8.GetBytes(message);
 
-    var routeKey = $"route-{logtype}";
-
-    channel.BasicPublish("logs-direct", routeKey, null, messageBody);
+    channel.BasicPublish("logs-topic", routeKey, null, messageBody);
 
     Console.WriteLine($"Log sent successfully ! {message}");
 });
