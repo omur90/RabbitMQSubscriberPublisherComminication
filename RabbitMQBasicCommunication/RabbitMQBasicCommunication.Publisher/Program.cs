@@ -14,25 +14,17 @@ using var connection = factory.CreateConnection();
 
 var channel = connection.CreateModel();
 
-channel.ExchangeDeclare("logs-topic", durable: true,type: ExchangeType.Topic);
+channel.ExchangeDeclare("header-exchange-example", durable: true,type: ExchangeType.Headers);
 
-Random rnd = new Random();
-Enumerable.Range(1, 50).ToList().ForEach(x =>
-{
- 
-    LogType logFirst = (LogType)new Random().Next(1, 5);
-    LogType logSecond = (LogType)new Random().Next(1, 5);
-    LogType logThird = (LogType)new Random().Next(1, 5);
+Dictionary<string, object> headers = new Dictionary<string, object>();
+headers.Add("format", "pdf");
+headers.Add("shape2", "a4");
+    
+var properties = channel.CreateBasicProperties();
+properties.Headers = headers;
 
-    var routeKey = $"{logFirst}.{logSecond}.{logThird}";
+channel.BasicPublish("header-exchange-example", string.Empty, properties,Encoding.UTF8.GetBytes("header message example !"));
 
-    string message = $"log-type : {logFirst}-{logSecond}-{logThird}";
-
-    var messageBody = Encoding.UTF8.GetBytes(message);
-
-    channel.BasicPublish("logs-topic", routeKey, null, messageBody);
-
-    Console.WriteLine($"Log sent successfully ! {message}");
-});
+Console.WriteLine("Header Topic example runnig !");
 
 Console.ReadLine();

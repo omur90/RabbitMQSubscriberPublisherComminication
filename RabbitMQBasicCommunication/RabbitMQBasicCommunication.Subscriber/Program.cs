@@ -13,15 +13,19 @@ using var connection = factory.CreateConnection();
 
 var channel = connection.CreateModel();
 
+
 var consumer = new EventingBasicConsumer(channel);
 
 var queueName = channel.QueueDeclare().QueueName;
 
-//var routeKey = "*.Error.*"; -- xxx.Error.xxx
-//var routeKey = "*.*.Warning"; -- xxx.xxx.Warning
-var routeKey = "Info.#"; // Info.xxx.xxx
-channel.QueueBind(queueName, "logs-topic", routeKey);
 
+Dictionary<string, object> headers = new Dictionary<string, object>();
+headers.Add("format", "pdf");
+headers.Add("shape", "a4");
+//headers.Add("x-match", "all"); // all conditional must match
+headers.Add("x-match", "any"); // at least one conditional must match
+
+channel.QueueBind(queueName, "header-exchange-example", string.Empty, headers);
 
 channel.BasicConsume(queueName, autoAck: false, consumer);
 
