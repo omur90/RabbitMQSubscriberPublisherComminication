@@ -1,7 +1,8 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+
 using RabbitMQ.Client;
-using System.Collections.Generic;
+using RabbitMQBasicCommunication.Publisher;
 using System.Text;
 
 var factory = new ConnectionFactory()
@@ -13,27 +14,31 @@ using var connection = factory.CreateConnection();
 
 var channel = connection.CreateModel();
 
-//var queueName = "hello-queue";
+channel.ExchangeDeclare("logs-direct", durable: true,type: ExchangeType.Direct);
 
-// durable = false save message in memory, set true save physically in rabbitMQ Server
-//exclusive = set true acces only this channel, set false access with any subscriber.
-//autoDelete = set true when all subscriber disconnect then message delete. Best practice says set false.
-//channel.QueueDeclare(queueName, true, false, false);
+Enum.GetNames(typeof(LogType)).ToList().ForEach(x =>
+{
+    var queueName = $"direct-queue-{x}";
+    channel.QueueDeclare(queueName, true, false, false);
 
-channel.ExchangeDeclare("logs-fanout", durable: true,type: ExchangeType.Fanout);
+    var routeKey = $"route-{x}";
+
+    channel.QueueBind(queueName, "logs-direct",routeKey,null);
+});
 
 Enumerable.Range(1, 50).ToList().ForEach(x =>
 {
-    // message is a byte array for RabbitMQ.
-    string message = $"log : {x}";
+    LogType logtype = (LogType)new Random().Next(1, 5);
+
+    string message = $"log-type : {logtype}";
 
     var messageBody = Encoding.UTF8.GetBytes(message);
 
-    channel.BasicPublish("logs-fanout", "", null, messageBody);
+    var routeKey = $"route-{logtype}";
 
-    Console.WriteLine($"Message sent successfully ! LogId : {x}");
+    channel.BasicPublish("logs-direct", routeKey, null, messageBody);
+
+    Console.WriteLine($"Log sent successfully ! {message}");
 });
-
-
 
 Console.ReadLine();

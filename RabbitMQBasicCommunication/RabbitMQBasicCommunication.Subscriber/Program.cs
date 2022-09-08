@@ -14,26 +14,14 @@ using var connection = factory.CreateConnection();
 var channel = connection.CreateModel();
 
 
-var randomQueueName = "log-database-save-queue"; //channel.QueueDeclare().QueueName;
-
-//if not declare queue and when all subscriber down messages not recived.
-//if declare queue not remove message on RabbitMq fanout exchange type.
-//channel.QueueDeclare(randomQueueName, true, false, false); 
-
-channel.QueueBind(randomQueueName, "logs-fanout", "", null);
-
-//var queueName = "hello-queue";
-//channel.QueueDeclare(queueName, true, false, false); => already created Publisher Library.  Than it is not necessary !
-
+var queueName = "direct-queue-Critical";
 
 
 var consumer = new EventingBasicConsumer(channel);
 
-//prefetchSize : 0 get any message 
 channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
-//autoAck : set false when this message read it after automatically delete. set true after delete yourself 
-channel.BasicConsume(randomQueueName, autoAck: false, consumer);
+channel.BasicConsume(queueName, autoAck: false, consumer);
 
 Console.WriteLine("Channel Listining...");
 
@@ -46,8 +34,8 @@ consumer.Received += (object? sender, BasicDeliverEventArgs e) =>
     
     Console.WriteLine($"Recived message : {message}");
 
-    //when message get successfuly than callBack to RabbitMQ 
-    // multiple : only get a single message you should set false.
+    File.AppendAllText("log-critical.txt", message + "\n");
+   
     channel.BasicAck(e.DeliveryTag, multiple: false);
 };
 
