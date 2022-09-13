@@ -22,6 +22,7 @@ headers.Add("shape2", "a4");
     
 var properties = channel.CreateBasicProperties();
 properties.Headers = headers;
+properties.Persistent = true;
 
 channel.BasicPublish("header-exchange-example", string.Empty, properties,Encoding.UTF8.GetBytes("header message example !"));
 
